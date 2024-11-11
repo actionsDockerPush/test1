@@ -38,6 +38,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          file: ./Dockerfile_${{ github.event.repository.name }}  # 指定 Dockerfile 路径
           push: true
           platforms: linux/amd64,linux/arm64
           tags:
