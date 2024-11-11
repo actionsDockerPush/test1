@@ -41,8 +41,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags:
-            ooaahhdocker/test1:latest # 镜像名
-            ooaahhdocker/test1:${{ github.ref_name }} # 使用commit名作为镜像标签
+            ooaahhdocker/test1:latest, ooaahhdocker/test1:${{ github.ref_name }} # 使用commit名作为镜像标签
           cache-from: type=registry,ref=ooaahhdocker/test1:latest # 如果有缓存镜像
           cache-to: type=inline
 
