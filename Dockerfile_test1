@@ -1,4 +1,4 @@
-# 使用 Ubuntu 作为基础镜像
+# 使用 Ubuntu 22.04 作为基础镜像
 FROM ubuntu:22.04
 
 # 设置环境变量以避免交互式提示
@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y \
     wget \
     unzip \
     xorg \
-    openbox \
     xfce4 \
     xfce4-goodies \
     tightvncserver \
@@ -18,13 +17,12 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxrender1 \
     libxext6 \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 创建用户（例如：matlabuser）
+# 创建用户（例如：matlabuser）并设置密码
 RUN useradd -m matlabuser && echo "matlabuser:password" | chpasswd && adduser matlabuser sudo
 
-# 设置 USER 环境变量
+# 设置 USER 和 HOME 环境变量
 ENV USER=matlabuser
 ENV HOME=/home/matlabuser
 
@@ -32,28 +30,22 @@ ENV HOME=/home/matlabuser
 USER matlabuser
 WORKDIR /home/matlabuser
 
-# 安装 MATLAB
-# 假设你已经将 MATLAB 安装包上传到当前目录，或通过 wget 下载
-# 例如：
-# COPY matlab_installer.zip /home/matlabuser/
-# RUN unzip matlab_installer.zip && ./install
-
-# 你需要根据 MATLAB 安装方式进行调整，以下为示例命令
-# 注意：MATLAB 安装可能需要交互，建议使用无人值守安装方式
-
 # 设置 VNC 密码
 RUN mkdir ~/.vnc
 RUN echo "password" | vncpasswd -f > ~/.vnc/passwd && chmod 600 ~/.vnc/passwd
 
-# 创建启动脚本
+# 配置 xstartup 脚本以启动 XFCE4
 RUN echo '#!/bin/bash\n\
-openbox &\n\
-xfce4-session &\n\
+xrdb $HOME/.Xresources\n\
+startxfce4 &' > ~/.vnc/xstartup && chmod +x ~/.vnc/xstartup
+
+# 创建启动脚本 start.sh
+RUN echo '#!/bin/bash\n\
 tightvncserver :1 -geometry 1920x1080 -depth 24\n\
-' > /home/matlabuser/start.sh && chmod +x /home/matlabuser/start.sh
+tail -F /dev/null' > /home/matlabuser/start.sh && chmod +x /home/matlabuser/start.sh
 
 # 暴露 VNC 端口
 EXPOSE 5901
 
-# 启动 VNC 服务器
+# 设置启动命令
 CMD ["./start.sh"]
