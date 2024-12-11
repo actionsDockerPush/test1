@@ -24,6 +24,11 @@ RUN apt-get update && apt-get install -y \
 # 创建用户（例如：matlabuser）
 RUN useradd -m matlabuser && echo "matlabuser:password" | chpasswd && adduser matlabuser sudo
 
+# 设置 USER 环境变量
+ENV USER=matlabuser
+ENV HOME=/home/matlabuser
+
+# 切换到 matlabuser 用户
 USER matlabuser
 WORKDIR /home/matlabuser
 
