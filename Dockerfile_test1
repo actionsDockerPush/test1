@@ -22,10 +22,10 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 配置 Mozilla APT 仓库
-RUN echo '
-Package: *
-Pin: origin packages.mozilla.org
-Pin-Priority: 1000
+RUN echo ' \
+Package: * \
+Pin: origin packages.mozilla.org \
+Pin-Priority: 1000 \
 ' > /etc/apt/preferences.d/mozilla
 
 RUN install -d -m 0755 /etc/apt/keyrings \
