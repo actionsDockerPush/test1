@@ -1,51 +1,54 @@
-# syntax=docker/dockerfile:1.9
-FROM bitnami/jupyter-base-notebook:4.1.6 AS base
+# 使用 Ubuntu 作为基础镜像
+FROM ubuntu:22.04
 
-# 设置工作目录
-WORKDIR /app
+# 设置环境变量以避免交互式提示
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install Python 3.7 and necessary dependencies
+# 更新包列表并安装必要的软件包
 RUN apt-get update && apt-get install -y \
-    python3.7 \
-    python3.7-dev \
-    python3.7-distutils \
+    sudo \
+    wget \
+    unzip \
+    xorg \
+    openbox \
+    xfce4 \
+    xfce4-goodies \
+    tightvncserver \
+    libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libxext6 \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create Python 3.7 virtual environment
-RUN python3.7 -m venv /opt/venv
+# 创建用户（例如：matlabuser）
+RUN useradd -m matlabuser && echo "matlabuser:password" | chpasswd && adduser matlabuser sudo
 
-# Modify virtual environment ownership
-RUN useradd -m appuser && chown -R appuser:appuser /opt/venv
+USER matlabuser
+WORKDIR /home/matlabuser
 
-# Set environment variables to use virtual environment Python and pip
-ENV VIRTUAL_ENV=/opt/venv
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+# 安装 MATLAB
+# 假设你已经将 MATLAB 安装包上传到当前目录，或通过 wget 下载
+# 例如：
+# COPY matlab_installer.zip /home/matlabuser/
+# RUN unzip matlab_installer.zip && ./install
 
-# Switch to appuser
-USER appuser
+# 你需要根据 MATLAB 安装方式进行调整，以下为示例命令
+# 注意：MATLAB 安装可能需要交互，建议使用无人值守安装方式
 
-# Upgrade pip and install necessary tools
-RUN pip install --upgrade pip setuptools setuptools_scm
+# 设置 VNC 密码
+RUN mkdir ~/.vnc
+RUN echo "password" | vncpasswd -f > ~/.vnc/passwd && chmod 600 ~/.vnc/passwd
 
-# Install scgen package
-RUN pip install scgen
-RUN pip install scgen[tutorials]
+# 创建启动脚本
+RUN echo '#!/bin/bash\n\
+openbox &\n\
+xfce4-session &\n\
+tightvncserver :1 -geometry 1920x1080 -depth 24\n\
+' > /home/matlabuser/start.sh && chmod +x /home/matlabuser/start.sh
 
-# Switch to root to install public dependencies
-USER root
+# 暴露 VNC 端口
+EXPOSE 5901
 
-# Set working directory
-WORKDIR /app
-
-# Expose port for Jupyter Notebook
-EXPOSE 8888
-
-# Set environment variables for Jupyter Notebook
-ENV JUPYTER_PORT=8888
-ENV JUPYTER_HOST=0.0.0.0
-
-# Switch to appuser
-USER appuser
-
-# Start Jupyter Notebook
-CMD ["sh", "-c", "jupyter notebook --no-browser --port=$JUPYTER_PORT --ip=$JUPYTER_HOST"]
+# 启动 VNC 服务器
+CMD ["./start.sh"]
