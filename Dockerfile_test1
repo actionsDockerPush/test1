@@ -1,66 +1,34 @@
-# 使用 Ubuntu 22.04 作为基础镜像
-FROM ubuntu:22.04
+# 使用官方 Ubuntu 镜像
+FROM ubuntu:latest
 
-# 设置环境变量以避免交互式提示
+# 设置环境变量
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 更新包列表并安装必要的软件包
-RUN apt-get update && apt-get install -y \
-    sudo \
-    wget \
-    unzip \
-    xorg \
+# 更新包列表，安装 GNOME 桌面、VNC、X11 等所需的工具
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y \
+    ubuntu-gnome-desktop \
+    x11vnc \
+    xvfb \
     xfce4 \
-    xfce4-goodies \
-    tightvncserver \
-    fontconfig \
-    locales \
-    language-pack-zh-hans \
-    fonts-noto-cjk \
-    fonts-wqy-zenhei \
-    fonts-arphic-ukai \
-    fonts-arphic-uming \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    gnome-shell \
+    gnome-session \
+    dbus-x11 \
+    sudo \
+    net-tools \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
 
-# 安装 Firefox
-RUN mkdir -p /etc/apt/keyrings \
-    && wget -q https://packages.mozilla.org/apt/repo-signing-key.gpg -O- | tee /etc/apt/keyrings/packages.mozilla.org.asc > /dev/null \
-    && echo "deb [signed-by=/etc/apt/keyrings/packages.mozilla.org.asc] https://packages.mozilla.org/apt mozilla main" | tee -a /etc/apt/sources.list.d/mozilla.list > /dev/null \
-    && echo "Package: *" | tee /etc/apt/preferences.d/mozilla > /dev/null \
-    && apt-get update \
-    && apt-get install -y firefox
+# 安装 VNC 密码
+RUN mkdir -p /root/.vnc && echo "yourpassword" | x11vnc -storepasswd /root/.vnc/passwd
 
-# 设置系统语言环境为中文
-RUN locale-gen zh_CN.UTF-8 \
-    && update-locale LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8
+# 复制启动脚本
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
-# 创建用户 matlabuser 并设置密码
-RUN useradd -m matlabuser && echo "matlabuser:password" | chpasswd && adduser matlabuser sudo
+# 暴露端口
+EXPOSE 5900
 
-# 设置 USER 和 HOME 环境变量
-ENV USER=matlabuser
-ENV HOME=/home/matlabuser
-
-# 切换到 matlabuser 用户
-USER matlabuser
-WORKDIR /home/matlabuser
-
-# 设置 VNC 密码
-RUN mkdir ~/.vnc \
-    && echo "password" | vncpasswd -f > ~/.vnc/passwd \
-    && chmod 600 ~/.vnc/passwd
-
-# 从外部复制xstartup
-# 创建目录
-RUN mkdir -p /home/matlabuser/.vnc
-# 复制文件并设置权限
-COPY --chmod=755 xstartup /home/matlabuser/.vnc/xstartup
-
-# 从外部复制启动脚本
-COPY --chmod=755 start.sh /home/matlabuser/start.sh
-
-# 暴露 VNC 端口
-EXPOSE 5901
-
-# 设置启动命令
-CMD ["/home/matlabuser/start.sh"]
+# 启动容器时执行的命令
+CMD ["/start.sh"]
